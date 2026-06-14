@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00000000000000000000000000000003, type: 3}
+  m_Name: SimulationConfig
+  m_EditorClassIdentifier: PlasmaSimulation.Data.SimulationConfig
+  SimulationSize: {x: 20, y: 12}
+  FieldGridResolutionX: 200
+  FieldGridResolutionY: 120
+  TimeStep: 1e-05
+  MinTimeStep: 1e-07
+  MaxTimeStep: 0.001
+  MaxParticles: 100000
+  InitialElectrons: 5000
+  InitialIons: 5000
+  InitialNeutrals: 20000
+  CoulombConstant: 8988000000
+  VacuumPermittivity: 8.854e-12
+  BoltzmannConstant: 1.381e-23
+  CollisionRadius: 0.05
+  IonizationEnergyThreshold: 2.179e-18
+  IonizationProbability: 0.3
+  CollisionDamping: 0.98
+  ElectrodeDefaultCharge: 1e-06
+  ElectrodeDefaultRadius: 0.5
+  ElectrodeBrushSize: 0.3
+  ElectronColor: {r: 0.2, g: 0.5, b: 1, a: 1}
+  IonColor: {r: 1, g: 0.3, b: 0.2, a: 1}
+  NeutralColor: {r: 0.7, g: 0.7, b: 0.7, a: 1}
+  ParticleSize: 0.05
+  HeatmapOpacity: 0.5
+  HeatmapScale: 10000000
+  CollisionDetectionBatchSize: 1000
+  FieldSolveIterations: 50
+  UseSpatialHash: 1
