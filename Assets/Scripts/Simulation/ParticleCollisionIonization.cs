@@ -46,12 +46,24 @@ namespace PlasmaSimulation.Simulation
             var activeIndices = _particlePool.ActiveIndices;
             Vector2 halfSize = _config.SimulationSize * 0.5f;
             float maxSpeed = 1e7f;
+            float boundaryEscapeMargin = _config.CollisionRadius * 2f;
+            List<int> toRecycle = null;
 
             for (int idx = 0; idx < activeIndices.Count; idx++)
             {
                 int i = activeIndices[idx];
                 ParticleData p = particles[i];
                 if (p.IsActive == 0) continue;
+
+                if (p.Position.x < -halfSize.x - boundaryEscapeMargin ||
+                    p.Position.x > halfSize.x + boundaryEscapeMargin ||
+                    p.Position.y < -halfSize.y - boundaryEscapeMargin ||
+                    p.Position.y > halfSize.y + boundaryEscapeMargin)
+                {
+                    if (toRecycle == null) toRecycle = new List<int>();
+                    toRecycle.Add(i);
+                    continue;
+                }
 
                 Vector2 eField = _fieldSolver.GetElectricFieldAt(p.Position);
                 Vector2 force = p.Charge * eField;
@@ -91,6 +103,14 @@ namespace PlasmaSimulation.Simulation
                 }
 
                 particles[i] = p;
+            }
+
+            if (toRecycle != null)
+            {
+                for (int r = 0; r < toRecycle.Count; r++)
+                {
+                    _particlePool.Recycle(toRecycle[r]);
+                }
             }
         }
 
@@ -223,6 +243,20 @@ namespace PlasmaSimulation.Simulation
 
         private void TryIonizeElectronNeutral(int electronIdx, int neutralIdx, ref ParticleData electron, ref ParticleData neutral)
         {
+            Vector2 halfSize = _config.SimulationSize * 0.5f;
+            float boundaryMargin = _config.CollisionRadius;
+            if (electron.Position.x < -halfSize.x + boundaryMargin ||
+                electron.Position.x > halfSize.x - boundaryMargin ||
+                electron.Position.y < -halfSize.y + boundaryMargin ||
+                electron.Position.y > halfSize.y - boundaryMargin ||
+                neutral.Position.x < -halfSize.x + boundaryMargin ||
+                neutral.Position.x > halfSize.x - boundaryMargin ||
+                neutral.Position.y < -halfSize.y + boundaryMargin ||
+                neutral.Position.y > halfSize.y - boundaryMargin)
+            {
+                return;
+            }
+
             float relativeEnergy = 0.5f * electron.Mass * electron.Velocity.sqrMagnitude;
 
             if (relativeEnergy > _config.IonizationEnergyThreshold && Random.value < _config.IonizationProbability)
