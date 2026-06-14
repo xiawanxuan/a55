@@ -15,6 +15,7 @@ namespace PlasmaSimulation.Simulation
         public int IonizationCount { get; private set; }
         public int CollisionCount { get; private set; }
 
+
         public void Initialize(SimulationConfig config, PlasmaParticlePool particlePool, ElectromagneticFieldSolver fieldSolver)
         {
             _config = config;
