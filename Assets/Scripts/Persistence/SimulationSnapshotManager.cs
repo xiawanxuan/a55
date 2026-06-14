@@ -35,8 +35,15 @@ namespace PlasmaSimulation.Persistence
                 TimeStep = _config.TimeStep,
                 SimulationSize = _config.SimulationSize,
                 Particles = _particlePool.GetActiveParticlesList(),
-                Electrodes = new List<ElectrodeData>(_fieldSolver.Electrodes)
+                Electrodes = new List<ElectrodeData>(_fieldSolver.Electrodes),
+                MagneticFieldEnabled = _config.EnableMagneticField
             };
+
+            var coils = _fieldSolver.GetMagneticCoils();
+            if (coils != null)
+            {
+                snapshot.MagneticCoils = new List<MagneticCoilData>(coils);
+            }
 
             int nx = _fieldSolver.GridSizeX;
             int ny = _fieldSolver.GridSizeY;
@@ -45,6 +52,13 @@ namespace PlasmaSimulation.Persistence
 
             System.Array.Copy(_fieldSolver.PotentialField, snapshot.PotentialField, nx * ny);
             System.Array.Copy(_fieldSolver.ElectricField, snapshot.ElectricField, nx * ny);
+
+            var bField = _fieldSolver.GetMagneticFieldZ();
+            if (bField != null)
+            {
+                snapshot.MagneticFieldZ = new float[nx, ny];
+                System.Array.Copy(bField, snapshot.MagneticFieldZ, nx * ny);
+            }
 
             return snapshot;
         }
@@ -102,11 +116,12 @@ namespace PlasmaSimulation.Persistence
 
             simulationTime = snapshot.SimulationTime;
             _config.TimeStep = snapshot.TimeStep;
+            _config.EnableMagneticField = snapshot.MagneticFieldEnabled;
 
             _particlePool.LoadParticlesFromList(snapshot.Particles);
-            _fieldSolver.LoadState(snapshot.PotentialField, snapshot.ElectricField, snapshot.Electrodes);
+            _fieldSolver.LoadState(snapshot.PotentialField, snapshot.ElectricField, snapshot.Electrodes, snapshot.MagneticCoils);
 
-            Debug.Log($"Snapshot applied: {snapshot.Timestamp}, Particles: {snapshot.ActiveParticleCount}");
+            Debug.Log($"Snapshot applied: {snapshot.Timestamp}, Particles: {snapshot.ActiveParticleCount}, Coils: {snapshot.MagneticCoils?.Count ?? 0}");
         }
 
         public bool DeleteSnapshot(string fileName)

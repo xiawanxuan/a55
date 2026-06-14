@@ -180,6 +180,13 @@ namespace PlasmaSimulation.Core
                 Debug.Log("Force field recalculation");
             }
 
+            if (Input.GetKeyDown(KeyCode.M))
+            {
+                Config.EnableMagneticField = !Config.EnableMagneticField;
+                _fieldSolver.SolveField();
+                Debug.Log($"Magnetic field: {(Config.EnableMagneticField ? "ON" : "OFF")}");
+            }
+
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 Application.Quit();
@@ -208,10 +215,12 @@ namespace PlasmaSimulation.Core
         private void PrintControlsHelp()
         {
             Debug.Log("=== PLASMA SIMULATION CONTROLS ===");
-            Debug.Log("Left Mouse: Paint electrode (hold to draw)");
-            Debug.Log("Right Mouse: Remove electrode");
-            Debug.Log("Key 1: Positive charge | Key 2: Negative charge");
-            Debug.Log("Key C: Clear all electrodes");
+            Debug.Log("Left Mouse: Paint electrode/coil (hold to draw)");
+            Debug.Log("Right Mouse: Remove electrode/coil");
+            Debug.Log("Key 1: Positive electrode | Key 2: Negative electrode");
+            Debug.Log("Key 3: Coil CCW current | Key 4: Coil CW current");
+            Debug.Log("Key C: Clear current mode objects | Shift+C: Clear all");
+            Debug.Log("Key M: Toggle magnetic field on/off");
             Debug.Log("Space: Pause/Resume | Key N: Single step");
             Debug.Log("Up/Down: Adjust time step | Key R: Reset time step");
             Debug.Log("Key F: Force field recalc");
@@ -240,6 +249,7 @@ namespace PlasmaSimulation.Core
             _particlePool.RecycleAll();
             _particlePool.SpawnInitialParticles();
             _fieldSolver.ClearElectrodes();
+            _fieldSolver.ClearMagneticCoils();
             _fieldSolver.ClearFields();
             _fieldSolver.SolveField();
             CurrentTimeStep = Config.TimeStep;
@@ -248,7 +258,7 @@ namespace PlasmaSimulation.Core
 
         private void OnGUI()
         {
-            GUILayout.BeginArea(new Rect(10, 10, 300, 200));
+            GUILayout.BeginArea(new Rect(10, 10, 320, 260));
             GUILayout.BeginVertical("box");
             GUILayout.Label($"FPS: {_currentFps:F1}", GetLabelStyle());
             GUILayout.Label($"Time: {SimulationTime:F4}s", GetLabelStyle());
@@ -258,7 +268,21 @@ namespace PlasmaSimulation.Core
             GUILayout.Label($"  Ions: {_lifecycleManager.IonCount}", GetLabelStyle());
             GUILayout.Label($"  Neutrals: {_lifecycleManager.NeutralCount}", GetLabelStyle());
             GUILayout.Label($"Status: {(IsPaused ? "<color=yellow>PAUSED</color>" : "<color=green>RUNNING</color>")}", GetLabelStyle());
-            GUILayout.Label($"Charge Mode: {(_painter.CurrentChargeSign > 0 ? "<color=red>Positive</color>" : "<color=blue>Negative</color>")}", GetLabelStyle());
+
+            if (_painter.CurrentPaintMode == Interaction.PaintMode.Electrode)
+            {
+                GUILayout.Label($"Mode: <color=cyan>Electrode</color> | {(_painter.CurrentChargeSign > 0 ? "<color=red>Positive</color>" : "<color=blue>Negative</color>")}", GetLabelStyle());
+            }
+            else
+            {
+                string dir = _painter.CurrentCoilCurrentSign > 0 ? "CCW (B out)" : "CW (B in)";
+                GUILayout.Label($"Mode: <color=magenta>Magnetic Coil</color> | {dir}", GetLabelStyle());
+            }
+
+            int coilCount = _fieldSolver.MagneticSolver != null ? _fieldSolver.MagneticSolver.CoilCount : 0;
+            int electrodeCount = _fieldSolver.Electrodes != null ? _fieldSolver.Electrodes.Count : 0;
+            string magStatus = Config.EnableMagneticField ? "<color=green>ON</color>" : "<color=gray>OFF</color>";
+            GUILayout.Label($"Magnetic Field: {magStatus} | Coils: {coilCount} | Electrodes: {electrodeCount}", GetLabelStyle());
             GUILayout.EndVertical();
             GUILayout.EndArea();
         }

@@ -4,6 +4,12 @@ using PlasmaSimulation.Simulation;
 
 namespace PlasmaSimulation.Interaction
 {
+    public enum PaintMode
+    {
+        Electrode = 0,
+        Coil = 1
+    }
+
     public class MouseElectricFieldPainter : MonoBehaviour
     {
         private Camera _mainCamera;
@@ -11,10 +17,14 @@ namespace PlasmaSimulation.Interaction
         private ElectromagneticFieldSolver _fieldSolver;
         private bool _isPainting;
         private float _currentChargeSign = 1f;
+        private float _currentCoilCurrentSign = 1f;
+        private PaintMode _currentPaintMode = PaintMode.Electrode;
         private Vector2 _lastPaintPosition;
 
         public bool IsPainting => _isPainting;
         public float CurrentChargeSign => _currentChargeSign;
+        public PaintMode CurrentPaintMode => _currentPaintMode;
+        public float CurrentCoilCurrentSign => _currentCoilCurrentSign;
 
         public void Initialize(SimulationConfig config, ElectromagneticFieldSolver fieldSolver)
         {
@@ -38,13 +48,27 @@ namespace PlasmaSimulation.Interaction
         {
             if (Input.GetKeyDown(KeyCode.Alpha1))
             {
+                _currentPaintMode = PaintMode.Electrode;
                 _currentChargeSign = 1f;
-                Debug.Log("Switched to positive electrode");
+                Debug.Log("Mode: Positive Electrode");
             }
             if (Input.GetKeyDown(KeyCode.Alpha2))
             {
+                _currentPaintMode = PaintMode.Electrode;
                 _currentChargeSign = -1f;
-                Debug.Log("Switched to negative electrode");
+                Debug.Log("Mode: Negative Electrode");
+            }
+            if (Input.GetKeyDown(KeyCode.Alpha3))
+            {
+                _currentPaintMode = PaintMode.Coil;
+                _currentCoilCurrentSign = 1f;
+                Debug.Log("Mode: Magnetic Coil (CCW current)");
+            }
+            if (Input.GetKeyDown(KeyCode.Alpha4))
+            {
+                _currentPaintMode = PaintMode.Coil;
+                _currentCoilCurrentSign = -1f;
+                Debug.Log("Mode: Magnetic Coil (CW current)");
             }
 
             if (Input.GetMouseButtonDown(0))
@@ -52,16 +76,17 @@ namespace PlasmaSimulation.Interaction
                 _isPainting = true;
                 Vector2 worldPos = ScreenToWorld(Input.mousePosition);
                 _lastPaintPosition = worldPos;
-                PlaceElectrode(worldPos);
+                PlaceObject(worldPos);
             }
 
             if (Input.GetMouseButton(0) && _isPainting)
             {
                 Vector2 worldPos = ScreenToWorld(Input.mousePosition);
+                float brushSize = _currentPaintMode == PaintMode.Electrode ? _config.ElectrodeBrushSize : _config.CoilBrushSize;
                 float dist = Vector2.Distance(worldPos, _lastPaintPosition);
-                if (dist > _config.ElectrodeBrushSize * 0.5f)
+                if (dist > brushSize * 0.5f)
                 {
-                    PlaceElectrode(worldPos);
+                    PlaceObject(worldPos);
                     _lastPaintPosition = worldPos;
                 }
             }
@@ -74,13 +99,34 @@ namespace PlasmaSimulation.Interaction
             if (Input.GetMouseButtonDown(1))
             {
                 Vector2 worldPos = ScreenToWorld(Input.mousePosition);
-                _fieldSolver.RemoveElectrodeAt(worldPos, 0.8f);
+                if (_currentPaintMode == PaintMode.Electrode)
+                {
+                    _fieldSolver.RemoveElectrodeAt(worldPos, 0.8f);
+                }
+                else
+                {
+                    _fieldSolver.RemoveMagneticCoilAt(worldPos, 1.2f);
+                }
                 _fieldSolver.SolveField();
             }
 
             if (Input.GetKeyDown(KeyCode.C))
             {
-                ClearElectrodes();
+                if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                {
+                    ClearAll();
+                }
+                else
+                {
+                    if (_currentPaintMode == PaintMode.Electrode)
+                    {
+                        ClearElectrodes();
+                    }
+                    else
+                    {
+                        ClearCoils();
+                    }
+                }
             }
         }
 
@@ -116,6 +162,54 @@ namespace PlasmaSimulation.Interaction
         public void ToggleChargeSign()
         {
             _currentChargeSign = -_currentChargeSign;
+        }
+
+        private void PlaceObject(Vector2 worldPosition)
+        {
+            if (_currentPaintMode == PaintMode.Electrode)
+            {
+                PlaceElectrode(worldPosition);
+            }
+            else
+            {
+                PlaceCoil(worldPosition);
+            }
+        }
+
+        private void PlaceCoil(Vector2 worldPosition)
+        {
+            Vector2 halfSize = _config.SimulationSize * 0.5f;
+            worldPosition.x = Mathf.Clamp(worldPosition.x, -halfSize.x + 0.5f, halfSize.x - 0.5f);
+            worldPosition.y = Mathf.Clamp(worldPosition.y, -halfSize.y + 0.5f, halfSize.y - 0.5f);
+
+            float current = _currentCoilCurrentSign * _config.CoilDefaultCurrent;
+            _fieldSolver.AddMagneticCoil(worldPosition, _config.CoilDefaultRadius, current, _config.CoilDefaultTurns);
+            _fieldSolver.SolveField();
+        }
+
+        public void ClearCoils()
+        {
+            _fieldSolver.ClearMagneticCoils();
+            _fieldSolver.SolveField();
+            Debug.Log("All magnetic coils cleared");
+        }
+
+        public void ClearAll()
+        {
+            _fieldSolver.ClearElectrodes();
+            _fieldSolver.ClearMagneticCoils();
+            _fieldSolver.SolveField();
+            Debug.Log("All electrodes and coils cleared");
+        }
+
+        public void SetPaintMode(PaintMode mode)
+        {
+            _currentPaintMode = mode;
+        }
+
+        public void ToggleCoilCurrentSign()
+        {
+            _currentCoilCurrentSign = -_currentCoilCurrentSign;
         }
     }
 }

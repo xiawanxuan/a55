@@ -24,7 +24,9 @@ MonoBehaviour:
   InitialNeutrals: 20000
   CoulombConstant: 8988000000
   VacuumPermittivity: 8.854e-12
+  VacuumPermeability: 1.25663706e-06
   BoltzmannConstant: 1.381e-23
+  ElectronCharge: -1.602e-19
   CollisionRadius: 0.05
   IonizationEnergyThreshold: 2.179e-18
   IonizationProbability: 0.3
@@ -32,6 +34,15 @@ MonoBehaviour:
   ElectrodeDefaultCharge: 1e-06
   ElectrodeDefaultRadius: 0.5
   ElectrodeBrushSize: 0.3
+  CoilDefaultCurrent: 100
+  CoilDefaultRadius: 1.5
+  CoilDefaultTurns: 10
+  CoilBrushSize: 0.5
+  LorentzForceScale: 1000000000000000
+  MagneticFieldOpacity: 0.4
+  CoilPositiveColor: {r: 0.8, g: 0.2, b: 0.8, a: 1}
+  CoilNegativeColor: {r: 0.2, g: 0.8, b: 0.8, a: 1}
+  EnableMagneticField: 1
   ElectronColor: {r: 0.2, g: 0.5, b: 1, a: 1}
   IonColor: {r: 1, g: 0.3, b: 0.2, a: 1}
   NeutralColor: {r: 0.7, g: 0.7, b: 0.7, a: 1}

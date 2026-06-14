@@ -68,6 +68,9 @@ namespace PlasmaSimulation.Simulation
 
                 Vector2 eField = _fieldSolver.GetElectricFieldAt(p.Position);
                 Vector2 force = p.Charge * eField;
+                Vector3 lorentzForce = _fieldSolver.GetLorentzForce(p.Position, p.Velocity, p.Charge);
+                force.x += lorentzForce.x;
+                force.y += lorentzForce.y;
                 Vector2 acceleration = force / p.Mass;
                 p.Velocity += acceleration * deltaTime;
 

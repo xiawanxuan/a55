@@ -11,12 +11,14 @@ namespace PlasmaSimulation.Simulation
         private float[,] _chargeDensity;
         private Vector2[,] _electricField;
         private List<ElectrodeData> _electrodes;
+        private MagneticFieldSolver _magneticSolver;
         private float _cellSizeX;
         private float _cellSizeY;
 
         public float[,] PotentialField => _potentialField;
         public Vector2[,] ElectricField => _electricField;
         public List<ElectrodeData> Electrodes => _electrodes;
+        public MagneticFieldSolver MagneticSolver => _magneticSolver;
         public int GridSizeX => _config != null ? _config.FieldGridResolutionX : 0;
         public int GridSizeY => _config != null ? _config.FieldGridResolutionY : 0;
 
@@ -29,6 +31,12 @@ namespace PlasmaSimulation.Simulation
             _electrodes = new List<ElectrodeData>();
             _cellSizeX = config.SimulationSize.x / config.FieldGridResolutionX;
             _cellSizeY = config.SimulationSize.y / config.FieldGridResolutionY;
+            _magneticSolver = gameObject.GetComponent<MagneticFieldSolver>();
+            if (_magneticSolver == null)
+            {
+                _magneticSolver = gameObject.AddComponent<MagneticFieldSolver>();
+            }
+            _magneticSolver.Initialize(config);
             ClearFields();
         }
 
@@ -44,6 +52,10 @@ namespace PlasmaSimulation.Simulation
                     _chargeDensity[i, j] = 0f;
                     _electricField[i, j] = Vector2.zero;
                 }
+            }
+            if (_magneticSolver != null)
+            {
+                _magneticSolver.ClearField();
             }
         }
 
@@ -73,6 +85,10 @@ namespace PlasmaSimulation.Simulation
             ComputeChargeDensity();
             SolvePoissonJacobi();
             ComputeElectricField();
+            if (_magneticSolver != null && _config.EnableMagneticField)
+            {
+                _magneticSolver.SolveField();
+            }
         }
 
         private void ComputeChargeDensity()
@@ -273,6 +289,61 @@ namespace PlasmaSimulation.Simulation
             if (potentialField != null) _potentialField = (float[,])potentialField.Clone();
             if (electricField != null) _electricField = (Vector2[,])electricField.Clone();
             if (electrodes != null) _electrodes = new List<ElectrodeData>(electrodes);
+        }
+
+        public void LoadState(float[,] potentialField, Vector2[,] electricField, List<ElectrodeData> electrodes, List<MagneticCoilData> coils)
+        {
+            LoadState(potentialField, electricField, electrodes);
+            if (_magneticSolver != null)
+            {
+                _magneticSolver.LoadState(coils);
+            }
+        }
+
+        public Vector3 GetLorentzForce(Vector2 position, Vector2 velocity, float charge)
+        {
+            if (_magneticSolver == null || !_config.EnableMagneticField) return Vector3.zero;
+            return _magneticSolver.GetLorentzForce(position, velocity, charge);
+        }
+
+        public float GetMagneticFieldZAt(Vector2 worldPosition)
+        {
+            if (_magneticSolver == null || !_config.EnableMagneticField) return 0f;
+            return _magneticSolver.GetMagneticFieldZAt(worldPosition);
+        }
+
+        public void AddMagneticCoil(Vector2 worldPosition, float radius, float current, int turns = 1)
+        {
+            if (_magneticSolver != null)
+            {
+                _magneticSolver.AddCoil(worldPosition, radius, current, turns);
+            }
+        }
+
+        public void RemoveMagneticCoilAt(Vector2 worldPosition, float tolerance = 1.0f)
+        {
+            if (_magneticSolver != null)
+            {
+                _magneticSolver.RemoveCoilAt(worldPosition, tolerance);
+            }
+        }
+
+        public void ClearMagneticCoils()
+        {
+            if (_magneticSolver != null)
+            {
+                _magneticSolver.ClearCoils();
+            }
+        }
+
+        public List<MagneticCoilData> GetMagneticCoils()
+        {
+            return _magneticSolver != null ? _magneticSolver.Coils : null;
+        }
+
+        public float[,] GetMagneticFieldZ()
+        {
+            return _magneticSolver != null ? _magneticSolver.MagneticFieldZ : null;
         }
     }
 }
